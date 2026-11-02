@@ -7,7 +7,15 @@
 
 <div align="center">
 
-[![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc/4.0/)
+👉 **[Read the Full Operational Rulebook (`Fibonacci Confluence 20261102.md`)](Fibonacci%20Confluence%2020261102.md)**
+
+</div>
+
+---
+
+<div align="center">
+
+[![License](https://img.shields.io/badge/License-Strict%20Non--Commercial%20Only-red.svg)](LICENSE.md)
 [![Rules](https://img.shields.io/badge/Rules-217%20Codified%20Laws-gold.svg)](#)
 [![Framework](https://img.shields.io/badge/Architecture-14%20Modules-blue.svg)](#)
 [![Studies](https://img.shields.io/badge/Price%20Studies-Retracements%20%7C%20Extensions%20%7C%20Projections%20%7C%20Expansions-purple.svg)](#)
@@ -70,7 +78,7 @@ The **Fibonacci Confluence Zone Rulebook** is a zero-ambiguity trading operating
 ```
 
 ### 1. Manual Desk Trading Protocol
-Print it. Keep it beside your execution screens. Before clicking buy or sell, run the chart through the **Master Decision Tree (RULE 001–RULE 217)**:
+Print it. Keep it beside your execution screens. Access the complete operational manual here: 👉 **[`Fibonacci Confluence 20261102.md`](Fibonacci%20Confluence%2020261102.md)**. Before clicking buy or sell, run the chart through the **Master Decision Tree (RULE 001–RULE 217)**:
 1. **Validate Anchors:** Is the swing confirmed with a lower high/higher low on both sides?
 2. **Cluster Analysis:** Did retracements, extensions, and projections form a 3-ratio zone?
 3. **Execution Gate:** Did a trigger complete 1–2 timeframes lower?
@@ -186,6 +194,11 @@ SETUP MATRIX               CORE ANCHOR                  TRIGGER REQUIREMENT
 
 ---
 
-## 📜 License & Usage
+## 📜 License & Intellectual Property
 
-Distributed under the **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)** License. You are free to adapt, translate, and use this rulebook for discretionary trading and AI fine-tuning, provided proper attribution is given and material is not used for commercial package sales.
+Distributed under the **[Strict Non-Commercial & Personal Research License (SNCL-1.0)](LICENSE.md)**. 
+
+* 🚫 **Zero Commercialization:** No selling as courses, PDFs, paid signal channels, Telegram/Discord rooms, or proprietary EAs/bots.
+* 🚫 **No Commercial AI Paywalls:** Any SLM/LLM weights, LoRAs, or agents fine-tuned using this corpus cannot be placed behind a paid API or monetized service.
+* ✅ **Permitted:** Free personal discretionary trading, private backtesting, academic research, and offline personal AI experiments with attribution.
+* ⚖️ **Full Terms:** See [`LICENSE.md`](LICENSE.md) for complete restrictions and the statutory financial risk disclaimer.

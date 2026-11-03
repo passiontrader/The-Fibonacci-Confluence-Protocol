@@ -1,6 +1,6 @@
 # FIBONACCI CONFLUENCE ZONE PROTOCOL - OPERATIONAL RULEBOOK (SLM DETERMINISTIC EDITION)
 ## SYSTEM SCOPE: Fibonacci Support/Resistance Zones, Trend Pullbacks, Symmetry Reversals, Two-Leg Patterns, Breakout Gaps, Entry Triggers, Execution Buffers & Quantitative Risk Control
-**Edition:** 20261103-SLM · Fully Deterministic & Formally Verified
+**Edition:** 20261103-SLM-Final · Fully Deterministic, Mathematically Complete & Formally Verified
 
 ---
 
@@ -221,7 +221,12 @@ EXPANSION        X:A down, C = A - (X:A × r)  (B ignored) mirror for resistance
 
 **RULE 037-ISOLATED LEVEL DELETE:** Delete any level that has no other Fibonacci levels near it to form a zone.
 
-**RULE 038-ZONE WIDTH LIMIT:** A Confluence Zone's width (Zone High − Zone Low) must not exceed 1.5 × ATR(14) on the setup timeframe (for stocks: also hard-capped at ≤ 3.0% of nominal price; for futures/commodities: strictly ≤ 1.5 × ATR(14)). A cluster spanning wider than 1.5 × ATR(14) is invalid and must be split into distinct sub-zones or skipped.
+**RULE 038-ZONE WIDTH & CLUSTERING ALGORITHM:** Confluence Zone construction is governed by an explicit sliding-window clustering algorithm:
+1. Candidate Pool: Collect all calculated price levels from the active four studies within 4.0 × ATR(14) of current price.
+2. Deduplication: Group levels derived from identical swing anchors; only one level per anchor pair may contribute to the mandatory 3-level count.
+3. Sliding Window Cluster: Scan the candidate pool with a sliding window of width W = 1.0 × ATR(14) (for equities: W = min(1.0 × ATR(14), 2.5% of nominal price)). If ≥ 3 distinct structural levels fall within window W, a candidate Confluence Zone is formed.
+4. Boundaries: Zone boundaries are strictly set to [Minimum contributing level, Maximum contributing level]. Zone width (Zone High − Zone Low) must satisfy: 0.15 × ATR(14) ≤ Width ≤ 1.50 × ATR(14). (Clusters < 0.15 × ATR(14) are merged into a single price line; clusters > 1.50 × ATR(14) are invalid and skipped).
+5. Cluster Overlap: If two candidate clusters overlap by > 50% of their span, merge them only if the combined span remains ≤ 1.50 × ATR(14); otherwise, retain only the cluster with the higher distinct level count.
 
 **RULE 039-NO ZONE-ONLY TRADE:** Never trade on a Confluence Zone alone, whatever its level count. Enter only on a valid entry pattern that forms inside the zone (defined in RULE 187).
 
@@ -247,6 +252,13 @@ EXPANSION        X:A down, C = A - (X:A × r)  (B ignored) mirror for resistance
 **RULE 046-TRIGGER REQUIRED:** Confirmation is mandatory for every standard reversal and continuation setup. A trade order may be executed ONLY after an explicit entry trigger (defined in Module 13) has completed at the Confluence Zone. Zone-touch limit entries are strictly prohibited in automated execution. Zone-Gap Momentum Breakouts (Module 12) operate under their own defined breakout/retest gate.
 
 **RULE 047-ENTRY MEANS PATTERN:** Every "entry" across all setup rules denotes a completed, confirmed trigger pattern (RULE 187, RULE 188, RULE 202). A zone touch, probe, or test alone is never an entry.
+
+**RULE 047A-UNIVERSAL NET REWARD-TO-RISK GATE:** Every trade across all modules must satisfy a mandatory pre-trade Net Reward-to-Risk filter prior to order submission:
+`Net Planned R:R = Total Planned Net Profit ($) / Maximum Initial Dollar Risk ($)`
+Where:
+- Maximum Initial Dollar Risk ($) = Total position size × ((|Entry − Stop Price| × Unit Multiplier) + Round-Turn Fees + 2 ticks slippage).
+- Total Planned Net Profit ($) for two-stage exits = [0.50 × Position Size × (|Entry − First Target| × Unit Multiplier)] + [0.50 × Position Size × (|Entry − Final Target| × Unit Multiplier)] − Total Transaction Fees.
+- Universal Requirement: Net Planned R:R must be ≥ 1.50 across the combined position. (If evaluating First Target alone in fast intraday setups, Net Reward to First Target / Initial Risk must be ≥ 1.00). If Net Planned R:R < 1.50, REJECT THE TRADE outright.
 
 ---
 
@@ -298,7 +310,10 @@ TREND PULLBACK LONG
 
 **RULE 054-FIRST TARGET:** Take first profit at the 0.618 retracement of the swing into the zone (or conservative 0.500 in lower-volatility conditions); close exactly 50% of position volume (for single-contract accounts: close entire position or trail full stop).
 
-**RULE 055-TRAIL AFTER FIRST:** After First Target profit is booked, immediately trail the stop on the remaining position to Breakeven plus a cost buffer: Entry Price ± (Estimated Round-Turn Commission + 2 ticks slippage buffer).
+**RULE 055-TRAIL AFTER FIRST:** After First Target profit is booked, immediately trail the protective stop on the remaining position to Breakeven plus a cost friction buffer converted to price points:
+- Price Offset in Points = (Estimated Round-Turn Commission & Fees per Contract or Share / Dollar Value of 1 Point) + (2 ticks × Price Increment per Tick).
+- Adjusted Breakeven Stop = Entry Price + Price Offset (for longs); Entry Price − Price Offset (for shorts).
+This mathematically guarantees that a stopped-out remainder covers all transaction costs without creating dimensional mixing of currency and points.
 
 **RULE 056-FINAL TARGET:** Exit the remainder at the 1.272 extension of the swing into the Confluence Zone.
 
@@ -564,10 +579,10 @@ AB=CD TLP LONG
 **PROBABILITY:** not quantified.
 
 **SKIP AB=CD TLP WHEN:**
-- C trades beyond A (RULE 103).
-- Price never trades beyond B (RULE 104).
-- The symmetry level is outside any Confluence Zone (RULE 106).
-- Step durations fail the visual test (RULE 101).
+- Point C trades beyond origin point A (RULE 104).
+- Price fails to trade decisively beyond point B (RULE 105).
+- The symmetry level falls outside any valid Confluence Zone (RULE 107).
+- Step duration ratio is outside 0.50–2.50 or price equality variance exceeds 12.0% (RULE 102).
 
 ### Variant 2: Gartley TLP
 
@@ -653,21 +668,22 @@ BULLISH BUTTERFLY TLP
 
 **RULE 128-BUTTERFLY POINT A:** A is the highest high of the pattern (bearish: the lowest low).
 
-**RULE 129-BUTTERFLY POINT B:** B ideally falls between the 0.382 and 0.786 retracement of X:A. Hard rule: B never goes beyond X. B can go deeper than in a Gartley.
+**RULE 129-BUTTERFLY POINT B:** Point B must terminate within the mandatory valid band of 0.382 to 0.786 retracement of leg X:A. Hard invalidation: point B must never close beyond origin point X.
 
-**RULE 130-BUTTERFLY POINT C:** Hard rule: C stays below A (bearish: above A). C ideally lands on the 0.382, 0.500, 0.618, or 0.786 retracement of A:B.
+**RULE 130-BUTTERFLY POINT C:** Point C must terminate within the mandatory valid band of 0.382 to 0.786 retracement of leg A:B. Hard invalidation: point C must never trade beyond extreme point A (close beyond A permanently voids pattern).
 
-**RULE 131-BUTTERFLY COMPLETION:** After C, once price trades beyond B, calculate the 1.272-1.618 extension band of X:A. That band is the completion zone, and D must lie beyond X.
+**RULE 131-BUTTERFLY COMPLETION:** After point C forms and price breaks beyond B, point D must decisively extend beyond extreme X into the 1.272 to 1.618 extension band of leg X:A.
 
-**RULE 132-BUTTERFLY STEP SIZE:** C:D is longer than A:B in most cases. When A:B equals C:D, the setup is an AB=CD TLP and a Butterfly TLP at the same time.
+**RULE 132-BUTTERFLY CONFLUENCE & PRIORITY:** When leg C:D equals A:B within ± 12% and D completes in the 1.272–1.618 band beyond X, the structure qualifies as both an AB=CD and a Butterfly TLP. In this case, classify the setup primarily as a Butterfly TLP (due to the higher-order structural extension beyond X) and execute using Butterfly stop and target parameters.
 
-**RULE 133-BUTTERFLY VISUAL TEST:** Butterfly geometry requires that duration ratio Duration(C:D) / Duration(X:A) fall between 0.50 and 2.50, and point D must decisively extend beyond point X.
+**RULE 133-BUTTERFLY GEOMETRY & DURATION:** Duration ratio Duration(C:D) / Duration(X:A) must strictly fall between 0.50 and 2.50. Swings outside this duration range are invalid.
 
 ### How to Trade the Butterfly TLP
 
 **ENTRY CONDITIONS:**
-- RULE 126 to RULE 132 met.
-- Price reaches the completion zone inside a Confluence Zone of at least 3 levels (RULE 118).
+- All conditions in RULE 127 through RULE 133 strictly met.
+- Price reaches the 1.272–1.618 extension band inside a qualified Confluence Zone of ≥ 3 distinct levels (RULE 033).
+- Completed trigger candle forms (RULE 134, RULE 187, RULE 202).
 
 **RULE 134-BUTTERFLY TRIGGER REQUIRED:** Do not enter on the bare touch of the 1.272 extension. Entry requires a completed trigger candle (RULE 187/RULE 202) reversing from the 1.272–1.618 completion zone.
 
@@ -735,7 +751,10 @@ BEARISH 200-SMA FAKE-OUT
 - RULE 142 to RULE 144 met.
 - An entry trigger forms.
 
-**RULE 147-FAKE-OUT ENTRY:** Entry confirmation requires a two-step sequence: (1) price completes a TLP at a Confluence Zone beyond the 200-day SMA, and (2) a candle decisively CLOSES back across the 200-day SMA in the reversal direction (close below the 200-SMA for shorts; close above for longs). Execute on that candle close or on the subsequent break of its extreme.
+**RULE 147-FAKE-OUT ENTRY & CONFIRMATION OVERRIDE:** Entry confirmation requires a two-step sequence:
+1. Pattern & Zone Completion: Price completes point D of a TLP at a Confluence Zone beyond the 200-day SMA (above 200-SMA for shorts; below for longs).
+2. SMA Cross Back Confirmation: A candle decisively CLOSES back across the 200-day SMA in the reversal direction (close below 200-SMA for shorts; close above for longs).
+3. Maximum Distance from Zone: The candle close back across the 200-SMA serves as an explicit, rule-governed override to the generic zone-proximity requirement of RULE 046, provided that the closing price is no further than 2.0 × ATR(14) from the Confluence Zone far edge. If price has traveled > 2.0 × ATR(14) away from the zone before closing across the SMA, the entry is stale and must be rejected.
 
 **STOP PLACEMENT:**
 
@@ -825,26 +844,21 @@ EXTENSION TRAP LONG
 
 ## MODULE 12: ZONE-GAP MOMENTUM BREAKOUTS
 
-### Definition: Zone Gap
+### Definition: Level-Free Corridor (Zone Gap)
 
-**RULE:** An Zone Gap is a tradable price gap between two Confluence Zones that contains no Fibonacci levels. When price breaks through the near zone, it moves through the empty gap to the far zone.
+**RULE:** A Zone Gap is a tradable price corridor between two Confluence Zones that contains no qualifying Confluence Zone (no cluster of ≥ 3 distinct levels). Isolated 1 or 2 Fibonacci levels may exist within the corridor and are marked as intermediate friction points. When price decisively closes through the near zone, momentum drives price across the corridor to the far zone.
 
-**CONTEXT:** These are momentum trades: buy the violation of a Resistance Confluence Zone, sell the violation of a Support Confluence Zone. An ADX drop through the 20 line signals the shift that makes the break likely. A reversal variant (RGBs) trades a trend that is turning. A continuation variant (CGBs) trades a resting trend that resumes.
+**CONTEXT:** These are momentum continuation and reversal breakouts: buy the confirmed breakout of a Resistance Confluence Zone, sell the confirmed breakout of a Support Confluence Zone. Breakouts require both low directional trend persistence (ADX ≤ 22) AND volatility compression (measured via ATR or Bollinger Bandwidth) prior to expansion across the corridor.
 
-**RULE 164-ADX READING SCALE:** Standardize ADX(14) interpretation across all breakout and trend modules:
+**RULE 164-ADX & VOLATILITY COMPRESSION:** Standardize breakout market regime indicators:
+1. Trend Strength (ADX 14-period): ADX(14) ≤ 22.0 indicates absence of entrenched countertrend momentum, permitting breakout energy to release.
+2. Volatility Compression Filter: Breakout qualification requires that ATR(14) on the setup timeframe is at or below its 20-period simple moving average (ATR(14) ≤ SMA(ATR(14), 20)), or Bollinger Bandwidth (20, 2) is compressed in the lower 25th percentile of its 50-bar range. Low ADX indicates directional exhaustion; ATR compression confirms volatility squeeze.
 
-| ADX(14) | Market Regime & Breakout Eligibility |
-|---|---|
-| 0 to 18 | Trendless / Volatility Compression (Prime regime for Zone-Gap Breakout readiness) |
-| 18 to 22 | Breakout Transition Threshold (Energy expanding across zone boundaries) |
-| 22 to 40 | Established, fully powered directional trend |
-| > 40 | Extended trend momentum / approaching climax |
+**RULE 165-ZONE GAP ADX SETTING:** Calculate ADX using a standard 14-period lookback with a compression threshold of 22.0.
 
-**RULE 165-ZONE GAP ADX SETTING:** Use a 14-period ADX with a reference level of 20.
+**RULE 166-CLEAR THE GAP:** A corridor between Confluence Zone #1 and Confluence Zone #2 is verified as a Level-Free Corridor if and only if it contains no cluster of ≥ 3 Fibonacci levels. Any 1 or 2 isolated levels inside the corridor do not invalidate the setup but must be monitored for potential mid-gap hesitation.
 
-**RULE 166-CLEAR THE GAP:** A corridor between two Confluence Zones is defined as a Level-Free Corridor if it contains no Confluence Zone (no cluster of ≥ 3 levels). Any 1 or 2 isolated levels inside the corridor are marked as intermediate friction points but do not block breakout qualification.
-
-**RULE 167-GAP TIMEFRAMES:** Trade Zone Gaps on 60-minute to weekly charts; the daily chart is the primary frame. Below 60 minutes, the gaps are too small to trade.
+**RULE 167-GAP TIMEFRAMES:** Trade Zone-Gap setups on 15-minute to Weekly timeframes (with Daily and 60-minute serving as primary frames; 15-minute is the absolute minimum timeframe). Timeframes below 15-minute are strictly prohibited due to excessive noise and insufficient corridor width.
 
 **RULE 168-PRIOR TESTS STRENGTHEN:** One or more prior bars testing the near edge of Confluence Zone #1 before the breaking bar make the break more explosive.
 
@@ -888,21 +902,27 @@ CGB LONG (trend is UP)
 
 ### How to Trade Zone Gaps (both variants)
 
-**ENTRY METHODS:**
-1. Aggressive: enter immediately on the violation of Confluence Zone #1's far edge.
-2. Conservative: wait for a small pullback that retests the broken Confluence Zone #1, then enter in the breakout direction.
+**ENTRY EXECUTION GATE:**
+- Canonical SLM Entry: Enter on the completed candle close that decisively penetrates beyond the far edge of Confluence Zone #1 into the Level-Free Corridor (by at least 0.10 × ATR(14)).
+- Conservative Retest Entry: If the initial breakout candle is extended (> 1.5 × ATR), wait for a retest of the broken zone edge that holds, entering on a completed confirmation candle in the breakout direction.
+- Intrabar touch entries without candle close are strictly prohibited in automated execution.
 
-**RULE 176-GAP STOP OPTIONS:** Choose one initial stop (longs; reverse for shorts):
-- a) below Confluence Zone #1 (shorts: above its highest level);
-- b) below the low of the bar that violates Confluence Zone #1;
-- c) below the prior bar's low.
+**RULE 176-GAP STOP SELECTION HIERARCHY:** Protective stop placement follows a strict deterministic priority order:
+- Primary Canonical Stop (Default for SLM): Beyond the far edge of the broken Confluence Zone #1 plus buffer: Stop Price = Zone #1 Near Edge ∓ (0.25 × ATR(14) + 2 ticks) (below broken zone for longs; above broken zone for shorts).
+- Tight Momentum Variant (Permitted ONLY if primary stop violates R:R ≥ 1.50): Placed beyond the extreme of the breakout candle: Stop Price = Low of Breakout Candle − (0.20 × ATR(14) + 2 ticks) for longs; High of Breakout Candle + (0.20 × ATR(14) + 2 ticks) for shorts.
+- Arbitrary stops (prior bar low) without structural backing are prohibited.
 
-**RULE 177-STOP VS GAP SIZE:** Mandatory Pre-Trade Risk-to-Reward Filter: Compute Potential Reward (distance from entry to near edge of Confluence Zone #2) and Risk (distance from entry to structural stop). The trade is permitted IF AND ONLY IF Reward / Risk ≥ 1.50. If R:R < 1.50, REJECT THE TRADE. Reducing position size does not alter R:R and cannot make an invalid setup tradable.
+**RULE 177-ZONE-GAP REWARD-TO-RISK GATE:** For Zone-Gap setups, Potential Reward is the exact distance from entry price to the near edge of Confluence Zone #2; Risk is the distance from entry price to the selected protective stop (RULE 176). The trade is permitted IF AND ONLY IF Net Reward / Net Risk ≥ 1.50 (incorporating estimated slippage and fees). If R:R < 1.50, the trade must be REJECTED. Reducing position size does not alter the R:R ratio and cannot repair an invalid setup.
 
-**RULE 178-POSITION SIZE FORMULA:**
-- Input: capital allowed at risk per trade; points of risk (entry − stop).
-- Calculation: shares/contracts = per-trade risk amount ÷ points of risk.
-- Output: position size.
+**RULE 178-POSITION SIZE FORMULA:** Position sizing across all setups is governed by an exact mathematical formula incorporating tick value, contract multipliers, and transaction friction:
+- For Equities & Stocks:
+  `Shares = floor( Dollar Risk Budget / ((|Entry Price − Stop Price| × 1.0) + Estimated Round-Turn Costs per Share + Slippage Buffer) )`
+- For Futures & Commodities (accounting for contract point multiplier and tick value):
+  `Stop Distance in Ticks = ceil( |Entry Price − Stop Price| / Minimum Tick Size )`
+  `Risk per Contract ($) = (Stop Distance in Ticks × Dollar Value per Tick) + Round-Turn Commission & Exchange Fees ($) + (2 ticks × Dollar Value per Tick slippage)`
+  `Contracts = floor( Dollar Risk Budget / Risk per Contract ($) )`
+- Currency Conversion: If account equity currency differs from contract quotation currency, convert Dollar Risk Budget into quotation currency at current exchange spot rate prior to calculation.
+- Minimum Size Enforcement: If calculated position size is < 1 contract (or < 1 share), NO TRADE is permitted.
 
 **TARGET:**
 
@@ -943,7 +963,7 @@ CGB LONG (trend is UP)
 | 15-minute | 3-minute | 1-minute |
 | 5-minute | 1-minute | Same (5-minute candle close) |
 
-**RULE 184-SAME TIMEFRAME OPTION:** A candlestick trigger on the setup's own time frame is also valid.
+**RULE 184-SAME TIMEFRAME RECONCILIATION:** A candlestick trigger on the setup's own timeframe is valid ONLY when executing with-trend setups (Trend Pullback, CGB) in moderate volatility (ADX(14) ≤ 30). For countertrend setups (Symmetry Reversal, Gartley, Butterfly, Extension Trap, 200-SMA Fake-Out), lower-timeframe drill-down confirmation (RULE 183, RULE 202, RULE 204) is strictly mandatory.
 
 **RULE 185-DRILL DEPTH LIMIT:** Drill down only 1-2 time frames below the setup; triggers taken far below it (e.g., 5-minute for a weekly setup) cause frequent whipsaws.
 
@@ -971,23 +991,23 @@ A white body closes above its open; a black (dark) body closes below its open. T
 
 **RULE 192-BULLISH ENGULFING:** A small black body followed by a larger white body that contains it. Bottom reversal; it starts a rally.
 
-**RULE 193-EVENING STAR:** A large white body, then a small body gapping above it, then a black body closing 50%+ into the white body. Top reversal.
+**RULE 193-EVENING STAR:** Three-candle top reversal: Candle 1 is a strong bullish body (|Close − Open| ≥ 0.60 × Range); Candle 2 is a small indecision body (|Close − Open| ≤ 0.30 × Range) whose body does not overlap Candle 1's body by more than 20% (on equity daily charts: gaps above; in 24-hour electronic futures: highs probe higher with small non-overlapping body); Candle 3 is a strong bearish candle closing at least 50% into Candle 1's body.
 
-**RULE 194-MORNING STAR:** A large black body, then a small body gapping below it, then a white body closing 50%+ into the black body. Bottom reversal.
+**RULE 194-MORNING STAR:** Three-candle bottom reversal: Candle 1 is a strong bearish body (|Close − Open| ≥ 0.60 × Range); Candle 2 is a small indecision body (|Close − Open| ≤ 0.30 × Range) with minimal body overlap; Candle 3 is a strong bullish candle closing at least 50% into Candle 1's body.
 
 **RULE 195-HANGING MAN / HAMMER:** Small body (|Open − Close| ≤ 0.35 × Range) near one end of the candle, with a tail at least 2 × body length and little/no opposing tail. Bearish Hanging Man appears in uptrends; Bullish Hammer appears in downtrends at support.
 
 **RULE 196-SHOOTING STAR / INVERTED HAMMER:** Small body (|Open − Close| ≤ 0.35 × Range) near the bottom (Shooting Star in uptrends, bearish) or near the top (Inverted Hammer at support, bullish), with an upper shadow at least 2 × body length.
 
-**RULE 197-MORNING DOJI STAR:** A large black body, then a doji gapping below it, then a white body closing at least 50% into the black body. Bottom reversal.
+**RULE 197-MORNING DOJI STAR:** Identical to Morning Star (RULE 194), with Candle 2 strictly satisfying the Doji body threshold: |Close − Open| ≤ 0.10 × Range.
 
-**RULE 198-EVENING DOJI STAR:** A large white body, then a doji gapping above it, then a black body closing at least 50% into the white body. Top reversal.
+**RULE 198-EVENING DOJI STAR:** Identical to Evening Star (RULE 193), with Candle 2 strictly satisfying the Doji body threshold: |Close − Open| ≤ 0.10 × Range.
 
 **RULE 199-TWEEZER BOTTOM:** Two consecutive candles whose lows match within ≤ 0.10 × ATR(14) (or ≤ 2 ticks), where the second candle closes bullishly off the level.
 
 **RULE 200-TWEEZER TOP:** Two consecutive candles whose highs match within ≤ 0.10 × ATR(14) (or ≤ 2 ticks), where the second candle closes bearishly off the level.
 
-**RULE 201-THREE METHODS:** Bullish 3 Method: a long white body, a few small bodies held mostly inside its range, then another long white body; bullish continuation. Bearish 3 Method: the mirror with black bodies; bearish continuation.
+**RULE 201-THREE METHODS CONTINUATION:** Five-candle continuation pattern: Candle 1 is a long impulse body in trend direction (|Close − Open| ≥ 0.65 × Range); Candles 2, 3, and 4 are small countertrend bodies (|Close − Open| ≤ 0.35 × Range) completely contained within Candle 1's high-low range; Candle 5 is a strong impulse candle closing decisively beyond Candle 1's extreme in the primary trend direction.
 
 ### How to Apply Triggers
 
@@ -1028,21 +1048,26 @@ A white body closes above its open; a black (dark) body closes below its open. T
 
 **RULE 209-NIGHTLY REVIEW:** Before every trading session, review all open and planned positions against the exposure and risk limits defined in RULE 210 to RULE 216.
 
-**RULE 210-DIRECTIONAL EXPOSURE:** Count long vs short positions; correct any overweighting relative to the overall market's position.
+**RULE 210-DIRECTIONAL EXPOSURE:** Net directional delta: Calculate the net delta of all open positions. Total net directional risk in one direction (Long Risk − Short Risk) must not exceed 3.5% of total account equity. In a confirmed market downtrend (Benchmark Index below its 200-SMA), long directional risk is capped at ≤ 2.0%.
 
 **RULE 211-SECTOR EXPOSURE:** Maximum open risk within a single market sector, currency group, or commodity complex must not exceed 3.0% of total account equity.
 
 **RULE 212-RISK PER TRADE:** Maximum risk per trade is strictly capped at 1.0% of total account equity for intraday operations (maximum 1.5% for swing trading on daily charts). Any sizing exceeding 1.5% is prohibited.
 
-**RULE 213-NEWS EXPOSURE:** Do not initiate new entries within 15 minutes before or 5 minutes after tier-1 high-impact economic releases (FOMC, NFP, CPI, Central Bank Rate decisions, or individual stock corporate earnings). Move open stops to breakeven or close positions prior to tier-1 events.
+**RULE 213-NEWS EXPOSURE & HIGH-IMPACT EVENTS:**
+1. Blackout Window: Do not initiate new entries within 15 minutes before or 5 minutes after tier-1 economic announcements (FOMC Rate Decision/Minutes, NFP, CPI, PPI, GDP, or stock corporate earnings).
+2. Existing Open Positions: If an open trade cannot have its stop moved to Breakeven + cost buffer (RULE 055) prior to the 15-minute pre-news window, the position must be closed at market prior to the release. Holding open unbuffered risk across tier-1 announcements is strictly prohibited.
 
 **RULE 214-PATTERN EXPOSURE:** When an index and several constituent equities present simultaneous setups, treat them as a single correlated cluster. Maximum allocation to the entire cluster must not exceed 2.0% total account risk.
 
 **RULE 215-TIMEFRAME DIVERSIFICATION:** Maintain awareness of timeframe correlation. An intraday portfolio may trade across approved timeframes (RULE 183), but trades in the same underlying asset must never take contradictory positions simultaneously.
 
-**RULE 216-TOTAL PORTFOLIO RISK & CIRCUIT BREAKERS:** Total aggregate open risk across all simultaneous positions must never exceed 5.0% of account equity. Mandatory circuit breakers: Daily Max Loss Limit = 3.0% of account equity (trading halted for the session upon reach); Weekly Max Drawdown = 6.0%.
+**RULE 216-TOTAL PORTFOLIO RISK & CIRCUIT BREAKERS:** Total aggregate open risk across all simultaneous active positions must never exceed 5.0% of account equity. Mandatory multi-tiered circuit breakers:
+1. Daily Max Loss Limit: 3.0% of starting session equity (both realized and unrealized). Once breached, all open orders are canceled, positions closed, and trading halted until the next daily session.
+2. Weekly Max Drawdown: 6.0% calculated from the weekly starting equity (or rolling 5-day high-water mark). Once breached, trading is halted for the remainder of the calendar week.
+3. Loss Streak Pause: 4 consecutive realized losses within a single session triggers an automated 2-hour cooling-off halt.
 
-**RULE 217-AGGRESSION INSIDE LIMITS:** Once risk is identified and the limits in RULE 209 to RULE 215 are in place, trade setups decisively and in full size within those limits.
+**RULE 217-EXECUTION INTEGRITY WITHIN PRESCRIBED LIMITS:** Execute the exact position quantity determined by the mathematical formula in RULE 178. Discretionary position inflation, "sizing up" after winning streaks, or taking "full size" beyond the formulaic output is strictly prohibited.
 
 **SKIP ANY NEW TRADE WHEN:**
 - It would push risk per trade above 1.0% intraday / 1.5% swing (RULE 212).
@@ -1153,9 +1178,10 @@ A white body closes above its open; a black (dark) body closes below its open. T
 ### Pre-Trade Checklist: Entry Trigger Gate
 - [ ] Setup complete and Confluence Zone tested (RULE 182)
 - [ ] Trigger identified on primary/secondary trigger timeframe per table (RULE 183)
-- [ ] Higher timeframe alignment confirmed (RULE 186)
+- [ ] Higher timeframe alignment confirmed: no conflicting HTF impulse (RULE 186)
 - [ ] Verified trigger candle completed: close beyond prior bar extreme or confirmed pattern (RULE 187, RULE 188, RULE 202)
 - [ ] Countertrend setups confirm trigger on lower timeframe (RULE 204)
+- [ ] All mandatory conditions in the specific setup module and checklist strictly satisfied
 
 ### Risk & Trade Management Checklist
 - [ ] Pre-trade Net Reward / Risk ≥ 1.50 confirmed (RULE 177)
@@ -1183,22 +1209,22 @@ START: Is the current swing point confirmed by completed candle close? (RULE 014
    │
    ├─ STRUCTURE 1: Trend Pullback (2+ HH and 1+ HL, or mirror) (RULE 048)
    │  ├─ ADX(8) ≥ 35.0, DI aligned at C, symmetry projection in zone?
-   │  │  └─ YES → SYMMETRY REVERSAL: entry RULE 074, stop RULE 075, targets RULE 076 / RULE 078
+   │  │  └─ YES → SYMMETRY REVERSAL (Verify all Module 07 Checklist items): entry RULE 074, stop RULE 075, targets RULE 076 / RULE 078
    │  ├─ Fixed ratio order strictly valid: 0.500 > 0.786 > 0.618 (first test)? (RULE 084, RULE 091)
-   │  │  └─ YES → THREE-RATIO ZONE: entry RULE 088, stop RULE 089, trail plan RULE 092-RULE 096
+   │  │  └─ YES → THREE-RATIO ZONE (Verify all Module 08 Checklist items): entry RULE 088, stop RULE 089, trail plan RULE 092-RULE 096
    │  └─ Standard pullback with ADX(14) ≥ 20.0 and rising? (RULE 059)
-   │     ├─ YES → TREND PULLBACK: entry RULE 046/050, stop RULE 051, targets RULE 054 / RULE 056
+   │     ├─ YES → TREND PULLBACK (Verify all Module 06 Checklist items): entry RULE 046/050, stop RULE 051, targets RULE 054 / RULE 056
    │     └─ NO → NO TRADE
    │
    ├─ STRUCTURE 2: Two-Leg Pattern A-B-C-D, C:D beyond B (RULE 099, RULE 102)
    │  ├─ Daily/approved timeframe & D completes beyond 200-SMA with close back across? (RULE 145, RULE 147, RULE 152)
-   │  │  └─ YES → 200-SMA FAKE-OUT: entry RULE 147, stop RULE 148, targets RULE 150 / RULE 151
+   │  │  └─ YES → 200-SMA FAKE-OUT (Verify all Module 10 Checklist items): entry RULE 147, stop RULE 148, targets RULE 150 / RULE 151
    │  ├─ D beyond X at 1.272-1.618 of X:A? (RULE 131)
-   │  │  └─ YES → BUTTERFLY TLP: entry RULE 134, stop RULE 136, targets RULE 138 / RULE 139
+   │  │  └─ YES → BUTTERFLY TLP (Verify all Module 09 Checklist items): entry RULE 134, stop RULE 136, targets RULE 138 / RULE 139
    │  ├─ D at 0.618-0.786 of X:A, B at 0.382-0.618? (RULE 115, RULE 117)
-   │  │  └─ YES → GARTLEY TLP: entry RULE 121, stop RULE 122, targets RULE 123 / RULE 124
-   │  ├─ Leg C:D = A:B and symmetry level in zone? (RULE 106, RULE 107)
-   │  │  └─ YES → AB=CD TLP: entry RULE 108, stop RULE 109, targets RULE 110 / RULE 141
+   │  │  └─ YES → GARTLEY TLP (Verify all Module 09 Checklist items): entry RULE 121, stop RULE 122, targets RULE 123 / RULE 124
+   │  ├─ Leg C:D = A:B within ± 12% and symmetry level in zone? (RULE 102, RULE 106, RULE 107)
+   │  │  └─ YES → AB=CD TLP (Verify all Module 09 Checklist items): entry RULE 108, stop RULE 109, targets RULE 110 / RULE 141
    │  └─ None fits → NO TRADE
    │
    ├─ STRUCTURE 3: 0.786 of A:B broken, price reaches 1.272-1.618 of A:B (RULE 155, RULE 157)
@@ -1217,16 +1243,19 @@ START: Is the current swing point confirmed by completed candle close? (RULE 014
    TRIGGER GATE (Mandatory for all standard setups; Zone Gaps use breakout close gate)
    ├─ Has a verified entry trigger candle completed on trigger timeframe? (RULE 182, RULE 183, RULE 187, RULE 202)
    │  ├─ NO → NO TRADE (Wait for trigger candle close)
-   │  └─ YES → Does higher timeframe oppose setup alignment? (RULE 186)
-   │     ├─ YES → NO TRADE
-   │     └─ NO → PRE-TRADE RISK & REWARD GATE
-   │        ├─ Is Potential Net Reward / Risk ≥ 1.50? (RULE 177)
-   │        │  ├─ NO → NO TRADE (Do not force poor R:R)
-   │        │  └─ YES → PORTFOLIO RISK & SIZING GATE
-   │        │     ├─ Trade risk ≤ 1.0% intraday (≤ 1.5% swing), total open risk ≤ 5.0%, daily loss < 3.0%? (RULE 212, RULE 216)
-   │        │     ├─ No tier-1 news release within 15m window? (RULE 213)
-   │        │     │  ├─ NO → NO TRADE
-   │        │     │  └─ YES → Calculate exact size via formula (RULE 178) and EXECUTE ORDER
+   │  └─ YES → Do all setup-specific checklist conditions pass completely?
+   │     ├─ NO → NO TRADE
+   │     └─ YES → Does higher timeframe oppose setup alignment? (RULE 186)
+   │        ├─ YES → NO TRADE
+   │        └─ NO → PRE-TRADE RISK & REWARD GATE
+   │           ├─ Does trade meet Universal Net Planned R:R ≥ 1.50? (RULE 047A, RULE 177)
+   │           │  ├─ NO → NO TRADE (Do not force poor R:R)
+   │           │  └─ YES → PORTFOLIO RISK & SIZING GATE
+   │           │     ├─ Trade risk ≤ 1.0% intraday (≤ 1.5% swing), total open risk ≤ 5.0%, daily loss < 3.0%, weekly drawdown < 6.0%? (RULE 212, RULE 216)
+   │           │     ├─ Net directional risk ≤ 3.5%, sector risk ≤ 3.0%, cluster risk ≤ 2.0%? (RULE 210, RULE 211, RULE 214)
+   │           │     ├─ No tier-1 news release within 15m window? (RULE 213)
+   │           │     │  ├─ NO → NO TRADE
+   │           │     │  └─ YES → Calculate exact position size via formula (RULE 178) and EXECUTE ORDER
 ```
 
 ---
@@ -1302,15 +1331,18 @@ START: Is the current swing point confirmed by completed candle close? (RULE 014
 ---
 ## OPERATIONAL DEFINITIONS (FORMALLY RESOLVED FOR SLM DEPLOYMENT)
 
-All previously discretionary or undefined parameters are now mathematically bound as operational laws:
-1. **Confluence Zone Width:** Strictly bound between 0.25 × ATR(14) and 1.50 × ATR(14) (stocks: also capped ≤ 3.0% of nominal price) (RULE 038).
-2. **Stop Placement Buffers:** Canonical formula is `Stop Price = Structural Far Edge ± (0.25 × ATR(14) + 2 ticks)` (RULE 051, RULE 075, RULE 089, RULE 109, RULE 122, RULE 136, RULE 148, RULE 160).
-3. **Consolidation Anchor Proximity:** Swings within 0.50 × ATR(14) are grouped, selecting the right-most pivot (RULE 008, RULE 009).
-4. **Swing Significance:** Minimum swing amplitude is 1.0 × ATR(14) (RULE 069, RULE 154).
-5. **Time Symmetry Tolerance:** Swing duration C:D must fall within ± 25% of swing A:B duration (RULE 073).
-6. **TRZ Test Limits:** Exactly one test permitted; any second touch/penetration permanently invalidates the zone (RULE 091).
-7. **Hover / Stall Timeouts:** Trend pullbacks must advance within 4 completed candles (RULE 058); Zone Gaps must advance within 3 completed candles (RULE 181).
-8. **Level-Free Corridor (Zone Gap):** Corridor is clear if no Confluence Zone (≥ 3 levels) exists between boundaries (RULE 166).
+All operational parameters are strictly bounded by mathematical formulas:
+1. **Confluence Zone Width & Clustering:** Sliding window W = 1.0 × ATR(14); zone span bounded strictly between 0.15 × ATR(14) and 1.50 × ATR(14) (stocks: capped ≤ 2.5% of price) (RULE 038).
+2. **Protective Stop Placement Buffers:** Canonical formula across all setups is `Stop Price = Structural Far Edge ± (0.25 × ATR(14) + 2 ticks)` (RULE 051, RULE 075, RULE 089, RULE 109, RULE 122, RULE 136, RULE 148, RULE 160, RULE 176).
+3. **Breakeven Cost Offset:** `Offset in Points = (Round-Turn Fees / Point Dollar Value) + (2 ticks × Tick Size)` (RULE 055).
+4. **Consolidation Anchor Proximity:** Swings within 0.50 × ATR(14) are clustered, selecting right-most pivot (RULE 008, RULE 009).
+5. **Swing Amplitude Floor:** Minimum swing amplitude is 1.0 × ATR(14) (RULE 069, RULE 103, RULE 154).
+6. **Time Symmetry Tolerance:** Swing duration C:D must fall within ± 25% of swing A:B duration (RULE 073).
+7. **AB=CD Leg Equality Tolerance:** Price amplitude |D − C| must match |B − A| within ± 12.0% (RULE 102).
+8. **Universal R:R Filter:** Net Planned Reward / Initial Risk must be ≥ 1.50 across all setups (RULE 047A, RULE 177).
+9. **Position Sizing Formula:** Exactly calculated using tick value, tick size, and transaction fees (RULE 178).
+10. **Timeout Invalidation:** Trend pullbacks must advance within 4 completed candles (RULE 058); Zone Gaps within 3 completed candles (RULE 181).
+11. **Empirical Status of Hypotheses:** Explanatory narratives (institutional exhaustion, crowd stops) are classified as operational trading hypotheses, not established physical laws.
 
 ---
 
